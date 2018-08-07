@@ -175,5 +175,5 @@ func deserializeClusterProps(node []byte) (ClusterProps, error) {
 }
 
 func (z *zookeeper) getClusterStatePath(root string, collection string) string {
-	return fmt.Sprintf("/%s/collections/%s/state.json", root, collection)
+	return fmt.Sprintf("%s/collections/%s/state.json", root, collection)
 }

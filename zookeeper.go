@@ -35,6 +35,9 @@ type Zookeeper interface {
 }
 
 func NewZookeeper(connectionString string, zkRoot string, collection string) Zookeeper {
+	if len(zkRoot) > 0 && zkRoot[0] != '/' {
+		zkRoot = '/' + zkRoot
+	}
 	return &zookeeper{
 		connectionString: connectionString,
 		zkRoot:           zkRoot,
@@ -111,12 +114,12 @@ func (z *zookeeper) GetClusterState() (map[string]Collection, int, error) {
 }
 
 func (z *zookeeper) GetLeaderElectW() (<-chan zk.Event, error) {
-	_, _, events, err := z.zkConnection.GetW(fmt.Sprintf("/%s/collections/%s/leader_elect", z.zkRoot, z.collection))
+	_, _, events, err := z.zkConnection.GetW(fmt.Sprintf("%s/collections/%s/leader_elect", z.zkRoot, z.collection))
 	return events, err
 }
 
 func (z *zookeeper) GetClusterProps() (ClusterProps, error) {
-	node, _, err := z.zkConnection.Get(fmt.Sprintf("/%s/clusterprops.json", z.zkRoot))
+	node, _, err := z.zkConnection.Get(fmt.Sprintf("%s/clusterprops.json", z.zkRoot))
 	if err != nil {
 		if err == zk.ErrNoNode {
 			return ClusterProps{UrlScheme: "http"}, nil
@@ -150,7 +153,7 @@ func (z *zookeeper) GetLiveNodes() ([]string, error) {
 }
 
 func (z *zookeeper) getLiveNodesPath(root string) string {
-	return fmt.Sprintf("/%s/live_nodes", root)
+	return fmt.Sprintf("%s/live_nodes", root)
 }
 
 func deserializeClusterState(node []byte) (map[string]Collection, error) {

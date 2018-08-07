@@ -36,7 +36,7 @@ type Zookeeper interface {
 
 func NewZookeeper(connectionString string, zkRoot string, collection string) Zookeeper {
 	if len(zkRoot) > 0 && zkRoot[0] != '/' {
-		zkRoot = '/' + zkRoot
+		zkRoot = "/" + zkRoot
 	}
 	return &zookeeper{
 		connectionString: connectionString,

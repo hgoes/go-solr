@@ -2,9 +2,25 @@ package solr
 
 import (
 	"fmt"
+	"net/http"
 )
 
-var ErrNotFound = NewNotFoundError("Not found")
+// HttpError - An Error due to a http response >= 400
+type HttpError struct {
+	Message string
+	Status int
+}
+
+func (err HttpError) Error() string {
+	return fmt.Sprintf("received error response from solr status: %d message: %s", err.Status, err.Message)
+}
+
+func isHttpNotFound(err error) bool {
+	if httpErr, ok := err.(HttpError); ok && httpErr.Status == http.StatusNotFound {
+		return true
+	}
+	return false
+}
 
 type SolrError struct {
 	errorMessage string
@@ -73,14 +89,3 @@ func NewSolrMapParseError(bucket string, userId int, m map[string]interface{}) e
 	return SolrMapParseError{bucket, m, userId}
 }
 
-type NotFoundError struct {
-	errorMessage string
-}
-
-func (err NotFoundError) Error() string {
-	return err.errorMessage
-}
-
-func NewNotFoundError(error string) error {
-	return NotFoundError{errorMessage: error}
-}

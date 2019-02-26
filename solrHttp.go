@@ -114,19 +114,15 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
+		httpError := HttpError{Status: resp.StatusCode, Message: "Http Request Failed"}
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("error reading response body for StatusCode %d, err: %s", resp.StatusCode, err)
+			return httpError
 		}
-		if resp.StatusCode == http.StatusNotFound {
-			return ErrNotFound
-		}
-		if resp.StatusCode < 500 {
-			return NewSolrError(resp.StatusCode, string(htmlData))
-		} else {
-			return NewSolrInternalError(resp.StatusCode, string(htmlData))
-		}
+		httpError.Message = string(htmlData)
+		return httpError
 	}
+
 	var r UpdateResponse
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(&r); err != nil {
@@ -181,17 +177,15 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
-		sr.Status = 404
-		return sr, ErrNotFound
-	}
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode != 200 {
+		sr.Status = resp.StatusCode
+		httpError := HttpError{Status: resp.StatusCode, Message: "Http Request Failed"}
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return sr, err
+			return sr, httpError
 		}
-		sr.Status = resp.StatusCode
-		return sr, NewSolrError(resp.StatusCode, string(htmlData))
+		httpError.Message = string(htmlData)
+		return sr, httpError
 	}
 
 	dec := json.NewDecoder(resp.Body)

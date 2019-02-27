@@ -106,7 +106,7 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	resp, err := s.writeClient.Do(req)
 	if resp != nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, resp.StatusCode, err)
-	} else if resp == nil  {
+	} else if resp == nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
@@ -114,13 +114,11 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		httpError := HttpError{Status: resp.StatusCode, Message: "Http Request Failed"}
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return httpError
+			return HttpError{Status: resp.StatusCode, Message: fmt.Sprintf("Http request failed and response could not be read, due to: %s", err.Error())}
 		}
-		httpError.Message = string(htmlData)
-		return httpError
+		return HttpError{Status: resp.StatusCode, Message: string(htmlData)}
 	}
 
 	var r UpdateResponse
@@ -169,7 +167,7 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	resp, err := s.queryClient.Do(req)
 	if resp != nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, resp.StatusCode, err)
-	} else if resp == nil  {
+	} else if resp == nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
@@ -179,13 +177,11 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 
 	if resp.StatusCode != 200 {
 		sr.Status = resp.StatusCode
-		httpError := HttpError{Status: resp.StatusCode, Message: "Http Request Failed"}
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return sr, httpError
+			return sr, HttpError{Status: resp.StatusCode, Message: fmt.Sprintf("Http request failed and response could not be read, due to: %s", err.Error())}
 		}
-		httpError.Message = string(htmlData)
-		return sr, httpError
+		return sr, HttpError{Status: resp.StatusCode, Message: string(htmlData)}
 	}
 
 	dec := json.NewDecoder(resp.Body)

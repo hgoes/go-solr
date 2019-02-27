@@ -106,7 +106,7 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	resp, err := s.writeClient.Do(req)
 	if resp != nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, resp.StatusCode, err)
-	} else if resp == nil  {
+	} else if resp == nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
@@ -116,17 +116,11 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	if resp.StatusCode != 200 {
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return fmt.Errorf("error reading response body for StatusCode %d, err: %s", resp.StatusCode, err)
+			return HttpError{Status: resp.StatusCode, Message: fmt.Sprintf("Http request failed and response could not be read, due to: %s", err.Error())}
 		}
-		if resp.StatusCode == http.StatusNotFound {
-			return ErrNotFound
-		}
-		if resp.StatusCode < 500 {
-			return NewSolrError(resp.StatusCode, string(htmlData))
-		} else {
-			return NewSolrInternalError(resp.StatusCode, string(htmlData))
-		}
+		return HttpError{Status: resp.StatusCode, Message: string(htmlData)}
 	}
+
 	var r UpdateResponse
 	dec := json.NewDecoder(resp.Body)
 	if err := dec.Decode(&r); err != nil {
@@ -173,7 +167,7 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	resp, err := s.queryClient.Do(req)
 	if resp != nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, resp.StatusCode, err)
-	} else if resp == nil  {
+	} else if resp == nil {
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
@@ -181,17 +175,13 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotFound {
-		sr.Status = 404
-		return sr, ErrNotFound
-	}
-	if resp.StatusCode >= 400 {
+	if resp.StatusCode != 200 {
+		sr.Status = resp.StatusCode
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return sr, err
+			return sr, HttpError{Status: resp.StatusCode, Message: fmt.Sprintf("Http request failed and response could not be read, due to: %s", err.Error())}
 		}
-		sr.Status = resp.StatusCode
-		return sr, NewSolrError(resp.StatusCode, string(htmlData))
+		return sr, HttpError{Status: resp.StatusCode, Message: string(htmlData)}
 	}
 
 	dec := json.NewDecoder(resp.Body)

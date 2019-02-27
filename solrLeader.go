@@ -45,7 +45,7 @@ func findShard(key string, cs *Collection) (*Shard, error) {
 			}
 		}
 	}
-	return nil, ErrNotFound
+	return nil, SolrError{"Shard not Found"}
 }
 
 func findReplicas(key string, cs *Collection) (map[string]Replica, error) {

@@ -185,6 +185,7 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	}
 
 	dec := json.NewDecoder(resp.Body)
+	dec.UseNumber()
 
 	return sr, dec.Decode(&sr)
 }

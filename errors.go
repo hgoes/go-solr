@@ -8,7 +8,7 @@ import (
 // HttpError - An Error due to a http response >= 400
 type HttpError struct {
 	Message string
-	Status int
+	Status  int
 }
 
 func (err HttpError) Error() string {
@@ -88,4 +88,3 @@ func (err SolrMapParseError) Error() string {
 func NewSolrMapParseError(bucket string, userId int, m map[string]interface{}) error {
 	return SolrMapParseError{bucket, m, userId}
 }
-

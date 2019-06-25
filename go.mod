@@ -1,4 +1,4 @@
-module github.com/fdc-michael-grosshans/go-solr
+module github.com/hguenther/go-solr
 
 require (
 	github.com/onsi/ginkgo v1.5.0

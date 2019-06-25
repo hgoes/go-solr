@@ -47,18 +47,17 @@ func (s *SolrHttpRetrier) Select(nodeUris []string, opts ...func(url.Values)) (S
 	return resp, err
 }
 
-func (s *SolrHttpRetrier) Update(nodeUris []string, jsonDocs bool, doc interface{}, opts ...func(url.Values)) error {
+func (s *SolrHttpRetrier) Update(nodeUris []string, jsonDocs bool, doc interface{}, opts ...func(url.Values)) (response UpdateResponse, err error) {
 	if len(nodeUris) == 0 {
-		return errors.New("[Solr HTTP Retrier]Length of nodes in solr is empty")
+		return UpdateResponse{}, errors.New("[Solr HTTP Retrier]Length of nodes in solr is empty")
 	}
 	now := time.Now()
-	var err error
 	backoff := s.exponentialBackoff
 	for attempt := 0; attempt < s.retries; attempt++ {
 		uri := nodeUris[attempt%len(nodeUris)]
-		err = s.solrCli.Update([]string{uri}, jsonDocs, doc, opts...)
+		response, err = s.solrCli.Update([]string{uri}, jsonDocs, doc, opts...)
 		if isHttpNotFound(err) {
-			return err
+			return response, err
 		}
 		if err != nil {
 			if minRFErr, ok := err.(SolrMinRFError); ok {
@@ -75,7 +74,7 @@ func (s *SolrHttpRetrier) Update(nodeUris []string, jsonDocs bool, doc interface
 		}
 		break
 	}
-	return err
+	return
 }
 
 func (s *SolrHttpRetrier) Logger() Logger {

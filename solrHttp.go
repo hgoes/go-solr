@@ -65,9 +65,9 @@ func NewSolrHTTP(useHTTPS bool, collection string, options ...func(*solrHttp)) (
 	return &solrCli, nil
 }
 
-func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, opts ...func(url.Values)) error {
+func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, opts ...func(url.Values)) (UpdateResponse, error) {
 	if len(nodeUris) == 0 {
-		return fmt.Errorf("[SolrHTTP] nodeuris: empty node uris is not valid")
+		return UpdateResponse{}, fmt.Errorf("[SolrHTTP] nodeuris: empty node uris is not valid")
 	}
 	nodeUri := nodeUris[0]
 	urlVals := url.Values{
@@ -86,13 +86,13 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	if doc != nil {
 		enc := json.NewEncoder(&buf)
 		if err := enc.Encode(doc); err != nil {
-			return err
+			return UpdateResponse{}, err
 		}
 	}
 	req, err := http.NewRequest("POST", uri, &buf)
 
 	if err != nil {
-		return err
+		return UpdateResponse{}, err
 	}
 	req.URL.RawQuery = urlVals.Encode()
 
@@ -110,32 +110,32 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
-		return err
+		return UpdateResponse{}, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return HttpError{Status: resp.StatusCode, Message: fmt.Sprintf("Http request failed and response could not be read, due to: %s", err.Error())}
+			return UpdateResponse{}, HttpError{Status: resp.StatusCode, Message: fmt.Sprintf("Http request failed and response could not be read, due to: %s", err.Error())}
 		}
-		return HttpError{Status: resp.StatusCode, Message: string(htmlData)}
+		return UpdateResponse{}, HttpError{Status: resp.StatusCode, Message: string(htmlData)}
 	}
 
-	var r UpdateResponse
+	var response UpdateResponse
 	dec := json.NewDecoder(resp.Body)
-	if err := dec.Decode(&r); err != nil {
-		return NewSolrParseError(resp.StatusCode, err.Error())
+	if err := dec.Decode(&response); err != nil {
+		return response, NewSolrParseError(resp.StatusCode, err.Error())
 	}
 
-	if r.Response.Status != 0 {
-		msg := r.Error.Msg
-		return NewSolrError(r.Response.Status, msg)
+	if response.Response.Status != 0 {
+		msg := response.Error.Msg
+		return response, NewSolrError(response.Response.Status, msg)
 	}
 
-	if r.Response.RF < r.Response.MinRF {
-		return NewSolrRFError(r.Response.RF, r.Response.MinRF)
+	if response.Response.RF < response.Response.MinRF {
+		return response, NewSolrRFError(response.Response.RF, response.Response.MinRF)
 	}
-	return nil
+	return response, nil
 }
 
 func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResponse, error) {
@@ -284,6 +284,13 @@ func Commit(commit bool) func(url.Values) {
 			commitString = "true"
 		}
 		p["commit"] = []string{commitString}
+	}
+}
+
+func CommitWithin(duration time.Duration) func(url.Values) {
+	return func(p url.Values) {
+		commitString := fmt.Sprintf("%.0f", duration.Round(time.Millisecond).Seconds()*1000)
+		p["commitWithin"] = []string{commitString}
 	}
 }
 

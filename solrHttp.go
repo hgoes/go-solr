@@ -294,6 +294,12 @@ func CommitWithin(duration time.Duration) func(url.Values) {
 	}
 }
 
+func WithVersions() func(url.Values) {
+	return func(values url.Values) {
+		values["versions"] = []string{"true"}
+	}
+}
+
 func Cursor(c string) func(url.Values) {
 	return func(p url.Values) {
 		p["cursorMark"] = []string{c}

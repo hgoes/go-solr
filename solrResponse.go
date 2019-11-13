@@ -56,7 +56,7 @@ type UpdateResponse struct {
 
 	// <adds> is a weird return value. It mixes ids with versions in a single slice, e.g.
 	// ["id1",1233144,"id2",4122243], to get only the ids call AddedIDs afterwards
-	Adds  []interface{} `json:"adds"`
+	Adds []interface{} `json:"adds"`
 
 	Error struct {
 		Metadata []string `json:"metadata"`
@@ -72,11 +72,14 @@ func (r UpdateResponse) AddedIDs() ([]string, error) {
 	ids := make([]string, len(r.Adds)/2)
 	for i := range r.Adds {
 		if i%2 == 0 {
-			val, ok := r.Adds[i].(string)
+			id, ok := r.Adds[i].(string)
 			if !ok {
-				return ids, fmt.Errorf("not a string: %v (position: %d)", val, i)
+				return ids, fmt.Errorf("not a string: %v (position: %d)", id, i)
 			}
-			ids[i/2] = val
+			if rev, ok := r.Adds[i+1].(float64); !ok || rev == 0 {
+				return ids, fmt.Errorf("not a revision: %v (position: %d)", rev, i+1)
+			}
+			ids[i/2] = id
 		}
 	}
 	return ids, nil

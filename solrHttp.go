@@ -123,6 +123,7 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 
 	var response UpdateResponse
 	dec := json.NewDecoder(resp.Body)
+	dec.UseNumber()
 	if err := dec.Decode(&response); err != nil {
 		return response, NewSolrParseError(resp.StatusCode, err.Error())
 	}

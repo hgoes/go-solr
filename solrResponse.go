@@ -1,6 +1,7 @@
 package solr
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 )
@@ -65,21 +66,25 @@ type UpdateResponse struct {
 	}
 }
 
-func (r UpdateResponse) AddedIDs() ([]string, error) {
+func (r UpdateResponse) AddedIDs() (ids map[string]int64, err error) {
 	if len(r.Adds)%2 != 0 {
 		return nil, errors.New("unexpected value for adds, len(adds) is not a multiple of 2")
 	}
-	ids := make([]string, len(r.Adds)/2)
+	ids = make(map[string]int64, len(r.Adds)/2)
 	for i := range r.Adds {
 		if i%2 == 0 {
 			id, ok := r.Adds[i].(string)
 			if !ok {
 				return ids, fmt.Errorf("not a string: %v (position: %d)", id, i)
 			}
-			if rev, ok := r.Adds[i+1].(float64); !ok || rev == 0 {
+			rev, ok := r.Adds[i+1].(json.Number)
+			if !ok {
 				return ids, fmt.Errorf("not a revision: %v (position: %d)", rev, i+1)
 			}
-			ids[i/2] = id
+			ids[id], err = rev.Int64()
+			if err != nil {
+				return ids, fmt.Errorf("not a revision: %v (position: %d)", rev, i+1)
+			}
 		}
 	}
 	return ids, nil

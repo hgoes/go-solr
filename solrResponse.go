@@ -15,8 +15,23 @@ type SolrResponse struct {
 		Wt     string `json:"wt"`
 	} `json:"params"`
 	Response       Response `json:"response"`
+	Debug          *Debug   `json:"debug"`
 	NextCursorMark string   `json:"nextCursorMark"`
 	Adds           Adds     `json:"adds"`
+}
+
+type Debug struct {
+	Timing Timing `json:"timing"`
+}
+
+type Timing struct {
+	Time    uint32      `json:"time"`
+	Prepare StageTiming `json:"prepare"`
+	Process StageTiming `json:"process"`
+}
+
+type StageTiming struct {
+	Time uint32 `json:"time"`
 }
 
 type Response struct {

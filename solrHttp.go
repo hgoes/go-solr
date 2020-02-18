@@ -288,6 +288,12 @@ func Commit(commit bool) func(url.Values) {
 	}
 }
 
+func DebugTiming() func(url.Values) {
+	return func(p url.Values) {
+		p["debug"] = []string{"timing"}
+	}
+}
+
 func CommitWithin(duration time.Duration) func(url.Values) {
 	return func(p url.Values) {
 		commitString := fmt.Sprintf("%.0f", duration.Round(time.Millisecond).Seconds()*1000)

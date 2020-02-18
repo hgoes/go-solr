@@ -17,4 +17,3 @@ func Test_CommitWithin(t *testing.T) {
 	require.Equal(t, map[string][]string{"commitWithin": {"5"}}, urlValues)
 
 }
-

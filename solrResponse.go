@@ -25,13 +25,13 @@ type Debug struct {
 }
 
 type Timing struct {
-	Time    uint32      `json:"time"`
+	Time    float64     `json:"time"`
 	Prepare StageTiming `json:"prepare"`
 	Process StageTiming `json:"process"`
 }
 
 type StageTiming struct {
-	Time uint32 `json:"time"`
+	Time float64 `json:"time"`
 }
 
 type Response struct {

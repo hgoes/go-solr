@@ -240,7 +240,7 @@ func ClusterStateVersion(version int, collection string) func(url.Values) {
 //Helper funcs for setting the solr query params
 func FilterQuery(fq string) func(url.Values) {
 	return func(p url.Values) {
-		p["fq"] = []string{fq}
+		p["fq"] = append(p["fq"], fq)
 	}
 }
 

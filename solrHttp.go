@@ -7,6 +7,7 @@ import (
 	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"log"
 	"net"
@@ -47,14 +48,14 @@ func NewSolrHTTP(useHTTPS bool, collection string, options ...func(*solrHttp)) (
 	if solrCli.writeClient == nil {
 		solrCli.writeClient, err = getClient(solrCli.cert, useHTTPS, solrCli.insecureSkipVerify, solrCli.writeTimeoutSeconds, solrCli.connectTimeoutSeconds)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "could not create http client for write")
 		}
 	}
 
 	if solrCli.queryClient == nil {
 		solrCli.queryClient, err = getClient(solrCli.cert, useHTTPS, solrCli.insecureSkipVerify, solrCli.readTimeoutSeconds, solrCli.connectTimeoutSeconds)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "could not create http client for read")
 		}
 	}
 
@@ -86,13 +87,14 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	if doc != nil {
 		enc := json.NewEncoder(&buf)
 		if err := enc.Encode(doc); err != nil {
-			return UpdateResponse{}, err
+			return UpdateResponse{}, errors.Wrap(err, "could not encode document")
+
 		}
 	}
 	req, err := http.NewRequest("POST", uri, &buf)
 
 	if err != nil {
-		return UpdateResponse{}, err
+		return UpdateResponse{}, errors.Wrap(err, "could not create http request")
 	}
 	req.URL.RawQuery = urlVals.Encode()
 
@@ -110,7 +112,7 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
-		return UpdateResponse{}, err
+		return UpdateResponse{}, errors.Wrap(err, "could not execute http request")
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
@@ -157,7 +159,7 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	body := bytes.NewBufferString(urlValues.Encode())
 	req, err := http.NewRequest("POST", u, body)
 	if err != nil {
-		return sr, err
+		return sr, errors.Wrap(err, "could not create http request")
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	basicCred := s.getBasicCredential(s.user, s.password)
@@ -172,7 +174,7 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
-		return sr, err
+		return sr, errors.Wrap(err, "could not execute http request")
 	}
 	defer resp.Body.Close()
 
@@ -188,7 +190,11 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	dec := json.NewDecoder(resp.Body)
 	dec.UseNumber()
 
-	return sr, dec.Decode(&sr)
+	err = dec.Decode(&sr)
+	if err != nil {
+		return sr, errors.Wrap(err, "could not decode http body")
+	}
+	return sr, nil
 }
 
 func getMapChunks(in []map[string]interface{}, chunkSize int) [][]map[string]interface{} {

@@ -107,14 +107,17 @@ func (s *solrHttp) Update(nodeUris []string, singleDoc bool, doc interface{}, op
 	start := time.Now()
 	resp, err := s.writeClient.Do(req)
 	if resp != nil {
+		defer resp.Body.Close()
 		s.router.AddSearchResult(time.Since(start), nodeUri, resp.StatusCode, err)
-	} else if resp == nil {
+	} else {
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
+		if urlError, ok := err.(*url.Error); ok {
+			return UpdateResponse{}, errors.Wrapf(err, "could not execute http request, timeout: %t, temporary: %t", urlError.Timeout(), urlError.Temporary())
+		}
 		return UpdateResponse{}, errors.Wrap(err, "could not execute http request")
 	}
-	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		htmlData, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -169,14 +172,17 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	start := time.Now()
 	resp, err := s.queryClient.Do(req)
 	if resp != nil {
+		defer resp.Body.Close()
 		s.router.AddSearchResult(time.Since(start), nodeUri, resp.StatusCode, err)
-	} else if resp == nil {
+	} else {
 		s.router.AddSearchResult(time.Since(start), nodeUri, http.StatusInternalServerError, err)
 	}
 	if err != nil {
+		if urlError, ok := err.(*url.Error); ok {
+			return sr, errors.Wrapf(err, "could not execute http request, timeout: %t, temporary: %t", urlError.Timeout(), urlError.Temporary())
+		}
 		return sr, errors.Wrap(err, "could not execute http request")
 	}
-	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		sr.Status = resp.StatusCode

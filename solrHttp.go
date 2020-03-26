@@ -173,6 +173,10 @@ func (s *solrHttp) Select(nodeUris []string, opts ...func(url.Values)) (SolrResp
 	}
 	defer resp.Body.Close()
 
+	if s.logger != nil {
+		s.logger.Debug("got response from solr", resp)
+	}
+
 	if resp.StatusCode != 200 {
 		sr.Status = resp.StatusCode
 		htmlData, err := ioutil.ReadAll(resp.Body)
@@ -328,6 +332,7 @@ func getClient(cert string, https bool, insecureSkipVerify bool, timeoutSeconds 
 		Timeout: time.Duration(timeoutSeconds) * time.Second,
 		Transport: &http.Transport{
 			MaxIdleConnsPerHost: 10,
+			IdleConnTimeout:     5 * time.Second,
 			DialContext:         (&net.Dialer{Timeout: connectTimeout}).DialContext},
 	}
 	if https {

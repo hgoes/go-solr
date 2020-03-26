@@ -327,6 +327,7 @@ func getClient(cert string, https bool, insecureSkipVerify bool, timeoutSeconds 
 	cli := &http.Client{
 		Timeout: time.Duration(timeoutSeconds) * time.Second,
 		Transport: &http.Transport{
+			IdleConnTimeout:     1 * time.Minute,
 			MaxIdleConnsPerHost: 10,
 			DialContext:         (&net.Dialer{Timeout: connectTimeout}).DialContext},
 	}
@@ -336,6 +337,7 @@ func getClient(cert string, https bool, insecureSkipVerify bool, timeoutSeconds 
 			return nil, err
 		}
 		cli.Transport = &http.Transport{
+			IdleConnTimeout:     1 * time.Minute,
 			TLSClientConfig:     tlsConfig,
 			MaxIdleConnsPerHost: 10,
 			DialContext:         (&net.Dialer{Timeout: connectTimeout}).DialContext,
